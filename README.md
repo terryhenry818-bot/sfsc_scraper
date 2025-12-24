@@ -7,23 +7,8 @@
 - 使用 Selenium 模拟无头 Chrome 浏览器访问 SofaScore
 - 支持按日期范围批量爬取比赛数据
 - 自动提取已完赛的足球比赛信息
-- **输出两个 CSV 文件**：
-  - 所有完赛比赛
-  - 欧洲五大联赛完赛比赛（英超、西甲、德甲、意甲、法甲）
 - 输出格式与 `top5_teams_all_matches.csv` 一致
 - 支持提取球队 ID (home_team_id, away_team_id)
-
-## 欧洲五大联赛
-
-脚本自动识别以下联赛：
-
-| 联赛 | 英文名称 |
-|------|----------|
-| 英超 | Premier League |
-| 西甲 | LaLiga / La Liga |
-| 德甲 | Bundesliga |
-| 意甲 | Serie A |
-| 法甲 | Ligue 1 |
 
 ## 环境要求
 
@@ -41,15 +26,13 @@ pip install -r requirements.txt
 
 ### 基本用法
 
-使用默认日期范围 (2025-12-05 到 2025-12-24)，输出两个 CSV 文件：
+使用默认日期范围 (2025-12-05 到 2025-12-24)：
 
 ```bash
 python sofascore_scraper.py
 ```
 
-默认输出：
-- `sofascore_all_matches.csv` - 所有完赛比赛
-- `sofascore_top5_matches.csv` - 欧洲五大联赛完赛比赛
+默认输出：`sofascore_all_matches.csv`
 
 ### 自定义日期范围
 
@@ -60,7 +43,7 @@ python sofascore_scraper.py --start-date 2025-12-01 --end-date 2025-12-31
 ### 指定输出文件名
 
 ```bash
-python sofascore_scraper.py -o all_matches.csv -t top5_matches.csv
+python sofascore_scraper.py -o my_matches.csv
 ```
 
 ### 可视化模式运行（非无头）
@@ -75,13 +58,12 @@ python sofascore_scraper.py --no-headless
 |------|--------|------|--------|
 | `--start-date` | `-s` | 开始日期 (YYYY-MM-DD) | 2025-12-05 |
 | `--end-date` | `-e` | 结束日期 (YYYY-MM-DD) | 2025-12-24 |
-| `--output-all` | `-o` | 所有比赛输出 CSV 文件名 | sofascore_all_matches.csv |
-| `--output-top5` | `-t` | 五大联赛输出 CSV 文件名 | sofascore_top5_matches.csv |
+| `--output` | `-o` | 输出 CSV 文件名 | sofascore_all_matches.csv |
 | `--no-headless` | - | 可视化模式运行 | False |
 
 ## 输出格式
 
-两个 CSV 文件格式相同，包含以下字段：
+CSV 文件包含以下字段：
 
 | 字段 | 说明 |
 |------|------|
@@ -112,7 +94,7 @@ python sofascore_scraper.py --no-headless
 
 ```csv
 match_id,date,time,weekday,competition,season,round,venue,opponent,home_team,away_team,home_team_id,away_team_id,home_goals,away_goals,home_ht,away_ht,team_goals,opponent_goals,result,status,match_url
-14083135,2025-12-05,20:00,Friday,LaLiga,25/26,15,主场,Barcelona,Real Madrid,Barcelona,2829,2817,2,1,1,0,2,1,胜,finished,https://www.sofascore.com/real-madrid-barcelona/...
+14025150,2025-12-09,21:15,Monday,Premier League,24/25,15,,West Ham United,Manchester United,2829,2817,2,1,1,0,2,1,胜,finished,https://www.sofascore.com/football/match/west-ham-united-manchester-united/KM#id:14025150
 ```
 
 ## 注意事项
