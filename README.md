@@ -7,7 +7,9 @@
 - 使用 Selenium 模拟无头 Chrome 浏览器访问 SofaScore
 - 支持按日期范围批量爬取比赛数据
 - 自动提取已完赛的足球比赛信息
-- 输出格式与 `top5_teams_all_matches.csv` 一致
+- **输出两个 CSV 文件**：
+  - 所有完赛比赛
+  - 五大联赛球队参与的比赛（基于 team_id 清单过滤）
 - 支持提取球队 ID (home_team_id, away_team_id)
 
 ## 环境要求
@@ -32,7 +34,9 @@ pip install -r requirements.txt
 python sofascore_scraper.py
 ```
 
-默认输出：`sofascore_all_matches.csv`
+默认输出：
+- `sofascore_all_matches.csv` - 所有完赛比赛
+- `sofascore_top5_teams_matches.csv` - 五大联赛球队参与的比赛
 
 ### 自定义日期范围
 
@@ -40,10 +44,10 @@ python sofascore_scraper.py
 python sofascore_scraper.py --start-date 2025-12-01 --end-date 2025-12-31
 ```
 
-### 指定输出文件名
+### 指定输出文件名和球队清单
 
 ```bash
-python sofascore_scraper.py -o my_matches.csv
+python sofascore_scraper.py -o all.csv -t top5.csv -l my_teams.csv
 ```
 
 ### 可视化模式运行（非无头）
@@ -58,12 +62,27 @@ python sofascore_scraper.py --no-headless
 |------|--------|------|--------|
 | `--start-date` | `-s` | 开始日期 (YYYY-MM-DD) | 2025-12-05 |
 | `--end-date` | `-e` | 结束日期 (YYYY-MM-DD) | 2025-12-24 |
-| `--output` | `-o` | 输出 CSV 文件名 | sofascore_all_matches.csv |
+| `--output` | `-o` | 所有比赛输出 CSV 文件名 | sofascore_all_matches.csv |
+| `--output-top5` | `-t` | 五大联赛球队比赛输出 CSV 文件名 | sofascore_top5_teams_matches.csv |
+| `--team-list` | `-l` | 球队 ID 清单 CSV 文件 | top5_teams_scraperfc.csv |
 | `--no-headless` | - | 可视化模式运行 | False |
+
+## 球队清单文件格式
+
+`top5_teams_scraperfc.csv` 文件需包含 `team_id` 列（也支持 `id` 或 `teamId` 列名）：
+
+```csv
+team_id,team_name
+2829,Real Madrid
+2817,Barcelona
+...
+```
+
+脚本会过滤出 `home_team_id` 或 `away_team_id` 在此清单中的比赛。
 
 ## 输出格式
 
-CSV 文件包含以下字段：
+两个 CSV 文件格式相同，包含以下字段：
 
 | 字段 | 说明 |
 |------|------|
@@ -103,6 +122,7 @@ match_id,date,time,weekday,competition,season,round,venue,opponent,home_team,awa
 2. **反爬虫**：SofaScore 可能有反爬虫机制，如遇问题请适当增加延迟时间
 3. **网络稳定**：确保网络连接稳定，脚本设置了20秒超时时间
 4. **Chrome 版本**：确保 Chrome 浏览器版本与 ChromeDriver 兼容
+5. **球队清单**：确保 `top5_teams_scraperfc.csv` 文件存在且格式正确
 
 ## 故障排除
 
@@ -124,6 +144,12 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 - 增加等待时间
 - 检查网络连接
 - 使用可视化模式调试
+
+### 球队清单文件未找到
+
+如果提示球队清单文件未找到：
+- 确保文件路径正确
+- 使用 `-l` 参数指定正确的文件路径
 
 ## License
 
