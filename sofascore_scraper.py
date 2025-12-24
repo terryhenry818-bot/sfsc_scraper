@@ -25,16 +25,6 @@ class SofaScoreScraper:
 
     BASE_URL = "https://www.sofascore.com/football"
 
-    # 欧洲五大联赛名称（包含可能的变体）
-    TOP5_LEAGUES = [
-        'Premier League',      # 英超
-        'LaLiga',              # 西甲
-        'La Liga',             # 西甲变体
-        'Bundesliga',          # 德甲
-        'Serie A',             # 意甲
-        'Ligue 1',             # 法甲
-    ]
-
     def __init__(self, headless=True, wait_timeout=20):
         """
         Initialize the scraper with Chrome WebDriver.
@@ -278,8 +268,15 @@ class SofaScoreScraper:
                 time_str = ""
 
             # Build match URL
+            # Format: https://www.sofascore.com/football/match/{slug}/{customId}#id:{match_id}
             slug = event.get('slug', '')
-            match_url = f"https://www.sofascore.com/{slug}#id:{match_id}" if slug else ""
+            custom_id = event.get('customId', '')
+            if slug and custom_id:
+                match_url = f"https://www.sofascore.com/football/match/{slug}/{custom_id}#id:{match_id}"
+            elif slug:
+                match_url = f"https://www.sofascore.com/football/match/{slug}#id:{match_id}"
+            else:
+                match_url = ""
 
             return {
                 'match_id': match_id,
@@ -486,34 +483,6 @@ class SofaScoreScraper:
         self.matches = all_matches
         return all_matches
 
-    def _is_top5_league(self, competition):
-        """
-        Check if a competition is one of the top 5 European leagues.
-
-        Args:
-            competition: Competition name
-
-        Returns:
-            True if it's a top 5 league, False otherwise
-        """
-        if not competition:
-            return False
-
-        competition_lower = competition.lower().strip()
-        for league in self.TOP5_LEAGUES:
-            if league.lower() in competition_lower or competition_lower in league.lower():
-                return True
-        return False
-
-    def get_top5_matches(self):
-        """
-        Get matches from top 5 European leagues only.
-
-        Returns:
-            List of matches from top 5 leagues
-        """
-        return [m for m in self.matches if self._is_top5_league(m.get('competition', ''))]
-
     def _write_csv(self, matches, filename):
         """
         Write matches to a CSV file.
@@ -542,29 +511,20 @@ class SofaScoreScraper:
 
         return len(matches)
 
-    def save_to_csv(self, all_matches_file="sofascore_all_matches.csv",
-                    top5_matches_file="sofascore_top5_matches.csv"):
+    def save_to_csv(self, filename="sofascore_all_matches.csv"):
         """
-        Save scraped matches to two CSV files:
-        - All finished matches
-        - Top 5 European leagues matches only
+        Save scraped matches to CSV file.
 
         Args:
-            all_matches_file: Output CSV filename for all matches
-            top5_matches_file: Output CSV filename for top 5 leagues
+            filename: Output CSV filename
         """
         if not self.matches:
             print("No matches to save")
             return
 
         # Save all matches
-        all_count = self._write_csv(self.matches, all_matches_file)
-        print(f"Saved {all_count} matches to {all_matches_file}")
-
-        # Save top 5 leagues matches
-        top5_matches = self.get_top5_matches()
-        top5_count = self._write_csv(top5_matches, top5_matches_file)
-        print(f"Saved {top5_count} top 5 leagues matches to {top5_matches_file}")
+        count = self._write_csv(self.matches, filename)
+        print(f"Saved {count} matches to {filename}")
 
     def close(self):
         """Close the WebDriver."""
@@ -579,10 +539,8 @@ def main():
                         help='Start date (YYYY-MM-DD)')
     parser.add_argument('--end-date', '-e', default='2025-12-24',
                         help='End date (YYYY-MM-DD)')
-    parser.add_argument('--output-all', '-o', default='sofascore_all_matches.csv',
-                        help='Output CSV filename for all matches')
-    parser.add_argument('--output-top5', '-t', default='sofascore_top5_matches.csv',
-                        help='Output CSV filename for top 5 leagues matches')
+    parser.add_argument('--output', '-o', default='sofascore_all_matches.csv',
+                        help='Output CSV filename')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run Chrome in visible mode (not headless)')
 
@@ -591,16 +549,14 @@ def main():
     print(f"SofaScore Football Match Scraper")
     print(f"================================")
     print(f"Date range: {args.start_date} to {args.end_date}")
-    print(f"Output files:")
-    print(f"  - All matches: {args.output_all}")
-    print(f"  - Top 5 leagues: {args.output_top5}")
+    print(f"Output file: {args.output}")
     print()
 
     scraper = SofaScoreScraper(headless=not args.no_headless)
 
     try:
         scraper.scrape_date_range(args.start_date, args.end_date)
-        scraper.save_to_csv(args.output_all, args.output_top5)
+        scraper.save_to_csv(args.output)
     finally:
         scraper.close()
 
