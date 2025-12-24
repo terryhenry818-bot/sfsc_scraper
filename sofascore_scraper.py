@@ -483,6 +483,59 @@ class SofaScoreScraper:
         self.matches = all_matches
         return all_matches
 
+    def load_team_ids_from_csv(self, team_list_file):
+        """
+        Load team IDs from a CSV file.
+
+        Args:
+            team_list_file: Path to CSV file containing team IDs
+
+        Returns:
+            Set of team IDs (as strings for comparison)
+        """
+        team_ids = set()
+
+        try:
+            with open(team_list_file, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Try common column names for team ID
+                    team_id = row.get('team_id') or row.get('id') or row.get('teamId')
+                    if team_id:
+                        team_ids.add(str(team_id).strip())
+
+            print(f"Loaded {len(team_ids)} team IDs from {team_list_file}")
+
+        except FileNotFoundError:
+            print(f"Warning: Team list file not found: {team_list_file}")
+        except Exception as e:
+            print(f"Error loading team list: {e}")
+
+        return team_ids
+
+    def filter_matches_by_teams(self, team_ids):
+        """
+        Filter matches where home_team_id or away_team_id is in the team ID set.
+
+        Args:
+            team_ids: Set of team IDs to filter by
+
+        Returns:
+            List of filtered matches
+        """
+        if not team_ids:
+            return []
+
+        filtered = []
+        for match in self.matches:
+            home_id = str(match.get('home_team_id', '')).strip()
+            away_id = str(match.get('away_team_id', '')).strip()
+
+            if home_id in team_ids or away_id in team_ids:
+                filtered.append(match)
+
+        return filtered
+
     def _write_csv(self, matches, filename):
         """
         Write matches to a CSV file.
@@ -511,20 +564,31 @@ class SofaScoreScraper:
 
         return len(matches)
 
-    def save_to_csv(self, filename="sofascore_all_matches.csv"):
+    def save_to_csv(self, all_matches_file="sofascore_all_matches.csv",
+                    top5_matches_file=None, team_list_file=None):
         """
-        Save scraped matches to CSV file.
+        Save scraped matches to CSV files.
 
         Args:
-            filename: Output CSV filename
+            all_matches_file: Output CSV filename for all matches
+            top5_matches_file: Output CSV filename for top 5 team matches (optional)
+            team_list_file: Path to CSV file containing team IDs for filtering (optional)
         """
         if not self.matches:
             print("No matches to save")
             return
 
         # Save all matches
-        count = self._write_csv(self.matches, filename)
-        print(f"Saved {count} matches to {filename}")
+        all_count = self._write_csv(self.matches, all_matches_file)
+        print(f"Saved {all_count} matches to {all_matches_file}")
+
+        # Save top 5 team matches if team list file is provided
+        if top5_matches_file and team_list_file:
+            team_ids = self.load_team_ids_from_csv(team_list_file)
+            if team_ids:
+                filtered_matches = self.filter_matches_by_teams(team_ids)
+                top5_count = self._write_csv(filtered_matches, top5_matches_file)
+                print(f"Saved {top5_count} top 5 team matches to {top5_matches_file}")
 
     def close(self):
         """Close the WebDriver."""
@@ -540,7 +604,11 @@ def main():
     parser.add_argument('--end-date', '-e', default='2025-12-24',
                         help='End date (YYYY-MM-DD)')
     parser.add_argument('--output', '-o', default='sofascore_all_matches.csv',
-                        help='Output CSV filename')
+                        help='Output CSV filename for all matches')
+    parser.add_argument('--output-top5', '-t', default='sofascore_top5_teams_matches.csv',
+                        help='Output CSV filename for top 5 team matches')
+    parser.add_argument('--team-list', '-l', default='top5_teams_scraperfc.csv',
+                        help='CSV file containing team IDs for filtering')
     parser.add_argument('--no-headless', action='store_true',
                         help='Run Chrome in visible mode (not headless)')
 
@@ -549,14 +617,17 @@ def main():
     print(f"SofaScore Football Match Scraper")
     print(f"================================")
     print(f"Date range: {args.start_date} to {args.end_date}")
-    print(f"Output file: {args.output}")
+    print(f"Output files:")
+    print(f"  - All matches: {args.output}")
+    print(f"  - Top 5 team matches: {args.output_top5}")
+    print(f"  - Team list file: {args.team_list}")
     print()
 
     scraper = SofaScoreScraper(headless=not args.no_headless)
 
     try:
         scraper.scrape_date_range(args.start_date, args.end_date)
-        scraper.save_to_csv(args.output)
+        scraper.save_to_csv(args.output, args.output_top5, args.team_list)
     finally:
         scraper.close()
 
